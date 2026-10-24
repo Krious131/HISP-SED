@@ -20,6 +20,8 @@ The first install needs internet access for the npm packages. The satellite GLBs
 
 ## Android APK
 
+Download the ready-to-install debug APK: [HISP-SED-debug.apk](releases/HISP-SED-debug.apk).
+
 1. Run `npm run build` and `npm run android:sync` after changing the web app.
 2. Build a debug APK with `npm run android:build` (Android Studio/SDK and JDK 17 are required).
 3. The APK is written to `android/app/build/outputs/apk/debug/app-debug.apk`. It installs with the **HISP-SED** name and launcher icon.
