@@ -11,12 +11,12 @@ The app is branded **HISP-SED**. Its custom orbit-and-planet icon is in `assets/
 3. Run `npm run dev -- --host 0.0.0.0 --port 5173`.
 4. Open [http://localhost:5173/](http://localhost:5173/) in a modern browser.
 5. Drag to orbit around the spacecraft and scroll or pinch to zoom. Open **SPACECRAFT** to select AIM or either AcrimSAT model. On a phone, tap **MOTION**, then turn or tilt the phone; drag and pinch remain available.
-6. Select one of the orbiting satellites in the scene, or choose it from **SPACECRAFT → ORBITAL CONTACTS**. Inspect its simulated position, altitude, speed, vector path, and ping. Tune antenna phase and elevation to lock onto its beacon.
-7. Open **CIPHER RANGE** for the guided substitution, transposition, and dual-key puzzles. The tutorial appears on first entry. Cleared tiers unlock the next tier and enable an encoded return signal. The AES-256-GCM panel demonstrates packet sealing, decryption, and tamper rejection.
+6. Select one of the orbiting satellites in the scene, or choose it from **SPACECRAFT → ORBITAL CONTACTS**. Inspect its simulated position, altitude, speed, vector path, and ping. Move the single antenna dial toward the displayed beacon target; it locks automatically when close.
+7. Open **CIPHER RANGE** for the guided substitution, transposition, and dual-key puzzles. Match the displayed dial setting and the decoded message appears automatically. The tutorial appears on first entry; cleared tiers unlock the next tier. The AES-256-GCM panel demonstrates packet sealing, decryption, and tamper rejection.
 8. Tap **CAMERA** to request the rear camera and show a live, translucent camera view behind the 3D scene. Tap it again to stop the camera. The camera stays off until requested.
 9. Tap **INTRO** to replay the launch sequence. On the first visit, **SKIP INTRO** dismisses it at any time.
 
-The first install needs internet access for the npm packages. The satellite GLBs, Draco decoder, and Earth texture are included locally after that. Web Crypto, phone motion sensors, and camera access need localhost or HTTPS. For a physical phone visiting a server on your computer, use an HTTPS address; the phone's `localhost` is the phone itself. On iOS, Safari asks for motion permission after you tap **MOTION**, and the browser asks for camera permission after you tap **CAMERA**.
+The first install needs internet access for the npm packages. The satellite GLBs, Draco decoder, and Earth texture are included locally after that. Web Crypto, phone motion sensors, and camera access need localhost or HTTPS. For a physical phone visiting a server on your computer, use an HTTPS address; the phone's `localhost` is the phone itself. The Android app requests camera permission the first time you tap **CAMERA**. If you previously denied it, enable **Camera** for HISP-SED in Android Settings. On iOS, Safari asks for motion permission after you tap **MOTION**, and the browser asks for camera permission after you tap **CAMERA**.
 
 ## Android APK
 

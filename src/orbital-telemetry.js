@@ -12,10 +12,8 @@ export function getTelemetrySnapshot(contact, elapsedSeconds) {
   return { angle, latitude, longitude, velocityKmS, pingMs, pathProgress: ((angle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2) / (Math.PI * 2) };
 }
 
-export function evaluateSignal(contact, phase, elevation, timeMs = performance.now()) {
+export function evaluateSignal(contact, phase) {
   const phaseDifference = Math.abs(((Number(phase) - contact.targetPhase + 540) % 360) - 180);
-  const elevationDifference = Math.abs(Number(elevation) - contact.targetElevation);
-  const noise = 8 + (Math.sin(timeMs * 0.0018 + contact.phase) + 1) * 7;
-  const quality = Math.max(0, Math.min(100, Math.round(100 - phaseDifference * 0.22 - elevationDifference * 1.45 - noise)));
-  return { phaseDifference, elevationDifference, noise, quality, lockReady: phaseDifference <= 7 && elevationDifference <= 3 && quality >= 55 };
+  const quality = Math.max(0, Math.min(100, Math.round(100 - phaseDifference * 4)));
+  return { phaseDifference, quality, lockReady: phaseDifference <= 12 };
 }

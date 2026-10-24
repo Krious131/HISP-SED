@@ -3,8 +3,8 @@ import { openPacket, sealPacket, verifyTamperRejection } from './secure-packet.j
 
 const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 const lessons = [
-  { icon: '◎', title: 'Signals are puzzles.', copy: 'Each intercepted message has a rule. Tune the visual key first, then restore the plaintext and verify the result.' },
-  { icon: '↻', title: 'The key changes the route.', copy: 'Start with a rotation wheel. Later tiers shuffle letter positions or stack two keys. Watch the field notes as you work.' },
+  { icon: '◎', title: 'Turn one dial.', copy: 'Each mission shows the target setting. Move the dial to it and the decoded message appears automatically.' },
+  { icon: '↻', title: 'Follow the target.', copy: 'The first two missions use one dial each. The last mission preloads its word key, so you only set the shift.' },
   { icon: '⌑', title: 'Seal the real link.', copy: 'Training ciphers are deliberately simple. The AES-256-GCM panel uses authenticated encryption and detects tampering.' },
 ];
 
@@ -82,18 +82,18 @@ export function initCipherRange({ toast, addXP }) {
     const settings = {
       1: {
         label: 'TIER 01 / ROTATION WHEEL', title: 'Restore the signal.', difficulty: 'ENTRY', reward: 50,
-        description: 'Each letter moved the same number of places around the alphabet. Turn the wheel backwards to read the message.',
-        mechanicTitle: 'A letter can orbit.', mechanicCopy: 'The ring shifts every symbol by a fixed number. If A maps to E, the key moved each letter four steps forward during encryption.', example: 'A  →  E  ·  B  →  F', keyTitle: 'ROTATION WHEEL', keySummary: 'ALIGN THE ALPHABET RINGS',
+        description: 'Turn the dial to the target shift. The transmission decodes automatically when you reach it.',
+        mechanicTitle: 'One dial, one signal.', mechanicCopy: 'A rotation moves every letter the same number of places. Match the target number and the message appears.', example: 'MATCH THE TARGET → AUTO-DECODE', keyTitle: 'ROTATION WHEEL', keySummary: `TURN TO +${String(challenge.key).padStart(2, '0')} TO DECODE`,
       },
       2: {
-        label: 'TIER 02 / RAIL FENCE', title: 'Rebuild the sequence.', difficulty: 'INTERMEDIATE', reward: 100,
-        description: 'The letters stayed the same, but their positions were scrambled along a zig-zag rail. Set the rail count, then read the path.',
-        mechanicTitle: 'Order is the hidden key.', mechanicCopy: 'A rail fence writes a message diagonally, then reads each row. The bands below show how the intercepted letters were grouped.', example: 'R1 → R2 → R3  /  read the zig-zag', keyTitle: 'TRANSPOSITION RAILS', keySummary: 'CHOOSE THE NUMBER OF RAILS',
+        label: 'TIER 02 / RAIL FENCE', title: 'Rebuild the sequence.', difficulty: 'STANDARD', reward: 100,
+        description: 'Set the dial to the number of rails shown. The message decodes as soon as the setting matches.',
+        mechanicTitle: 'Set the rail count.', mechanicCopy: 'The signal was written across three rails. Match that number to restore the original order.', example: 'TARGET: 3 RAILS → AUTO-DECODE', keyTitle: 'TRANSPOSITION RAILS', keySummary: `SET TO ${challenge.key} RAILS TO DECODE`,
       },
       3: {
         label: 'TIER 03 / DUAL KEY CASCADE', title: 'Unwrap two key layers.', difficulty: 'ADVANCED', reward: 150,
-        description: 'Two transformations protect this signal. Reverse the numeric shift first, then enter the repeating keyword to restore each letter.',
-        mechanicTitle: 'Two keys, one message.', mechanicCopy: 'The numeric key is removed first. Then a repeating Vigenère keyword reverses a different shift for each letter.', example: 'KEY A: repeating word  ·  KEY B: rotation', keyTitle: 'LAYERED KEY CASCADE', keySummary: 'REVERSE KEY B, THEN KEY A',
+        description: 'The word key is loaded for you. Match the final shift dial and the layered signal decodes automatically.',
+        mechanicTitle: 'The word key is ready.', mechanicCopy: 'Key A is preloaded. Turn the shift dial to the target to undo the final layer and reveal the message.', example: `KEY A: ${challenge.key}  ·  MATCH THE SHIFT`, keyTitle: 'LAYERED KEY CASCADE', keySummary: `SET SHIFT TO +${String(challenge.offset).padStart(2, '0')} TO DECODE`,
       },
     }[tier];
     $('#puzzle-tier-label').textContent = settings.label;
@@ -108,12 +108,12 @@ export function initCipherRange({ toast, addXP }) {
     $('#key-summary').textContent = settings.keySummary;
     $('#ciphertext-label').textContent = challenge.ciphertext;
     $('#decode-answer').value = '';
-    $('#key-one').value = '';
+    $('#key-one').value = tier === 3 ? challenge.key : '';
     $('#rotation-slider').value = '0';
     $('#rail-slider').value = '2';
     $('#layer-shift').value = '0';
     $('#cipher-result').className = 'cipher-result';
-    $('#cipher-result').textContent = 'Tune the key, then submit the decoded transmission.';
+    $('#cipher-result').textContent = 'Match the target setting. The message decodes automatically.';
     $('#return-signal').hidden = true;
     $('#reply-output').hidden = true;
     $('#wheel-stage').hidden = tier !== 1;
@@ -158,40 +158,39 @@ export function initCipherRange({ toast, addXP }) {
       $('#layer-shift-value').textContent = keyTwo;
       $('#key-value').textContent = keyOne ? `${keyOne.toUpperCase()} / +${keyTwo}` : '2 LAYERS';
     }
+    autoDecodeIfCorrect();
   }
 
   function submitAnswer() {
-    const answer = normalizeSignal($('#decode-answer').value);
     const [keyOne, keyTwo] = currentKeys();
-    if (!answer) {
-      $('#cipher-result').className = 'cipher-result warning';
-      $('#cipher-result').textContent = 'Enter the restored signal to verify it.';
-      return;
-    }
-    if (tier === 3 && !normalizeSignal(keyOne)) {
-      $('#cipher-result').className = 'cipher-result warning';
-      $('#cipher-result').textContent = 'Enter Key A before attempting the layered message.';
-      return;
-    }
     const restored = decodeChallenge(challenge, keyOne, keyTwo);
-    if (answer !== normalizeSignal(challenge.plaintext) || normalizeSignal(restored) !== normalizeSignal(challenge.plaintext)) {
+    if (normalizeSignal(restored) !== normalizeSignal(challenge.plaintext)) {
       $('#cipher-result').className = 'cipher-result warning';
-      $('#cipher-result').textContent = 'The signal is still garbled. Adjust the key and try again.';
+      $('#cipher-result').textContent = 'Not quite. Match the target shown above; the message will decode by itself.';
       return;
     }
+    if (!$('#return-signal').hidden) return;
     const firstClear = !cleared.has(tier);
     cleared.add(tier);
     if (tier < 3) highestUnlocked = Math.max(highestUnlocked, tier + 1);
     localStorage.setItem('space-cypher-cleared', JSON.stringify([...cleared]));
     localStorage.setItem('space-cypher-unlocked', String(highestUnlocked));
     $('#cipher-result').className = 'cipher-result success';
-    $('#cipher-result').innerHTML = `<b>TRANSMISSION RESTORED</b><span>${challenge.plaintext} · ${firstClear ? `+${{ 1: 50, 2: 100, 3: 150 }[tier]} XP` : 'tier already cleared'}</span>`;
+    $('#decode-answer').value = restored;
+    $('#cipher-result').innerHTML = `<b>TRANSMISSION DECODED</b><span>${restored} · ${firstClear ? `+${{ 1: 50, 2: 100, 3: 150 }[tier]} XP` : 'tier already cleared'}</span>`;
     if (firstClear) addXP({ 1: 50, 2: 100, 3: 150 }[tier]);
     $('#return-signal').hidden = false;
     $('#reply-output').hidden = true;
     $('#return-message').value = 'RETURN TO BASE';
     renderTierTabs();
-    toast(firstClear ? 'Signal restored. Next cipher tier unlocked.' : 'Signal restored. Tier already cleared.');
+    toast(firstClear ? 'Signal decoded. Next cipher tier unlocked.' : 'Signal decoded.');
+  }
+
+  function autoDecodeIfCorrect() {
+    const [keyOne, keyTwo] = currentKeys();
+    if (tier === 3 && !normalizeSignal(keyOne)) return;
+    const decoded = decodeChallenge(challenge, keyOne, keyTwo);
+    if (normalizeSignal(decoded) === normalizeSignal(challenge.plaintext)) submitAnswer();
   }
 
   function showTutorial(index = 0) {
@@ -209,7 +208,7 @@ export function initCipherRange({ toast, addXP }) {
   function closeTutorial() {
     $('#tutorial-scrim').hidden = true;
     localStorage.setItem('space-cypher-tutorial-seen', 'yes');
-    $('#decode-answer').focus({ preventScroll: true });
+    $('#rotation-slider').focus({ preventScroll: true });
   }
 
   document.querySelectorAll('.tier-tab').forEach((button) => button.addEventListener('click', () => loadTier(Number(button.dataset.tier))));

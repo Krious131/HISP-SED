@@ -52,10 +52,10 @@ document.querySelector('#app').insertAdjacentHTML('beforeend', `
             <div class="wheel-stage" id="wheel-stage"><div class="wheel-ring outer-ring" id="wheel-outer"></div><div class="wheel-core"><span>A</span><i>↕</i><b id="wheel-match">A</b></div><div class="wheel-ring inner-ring" id="wheel-inner"></div></div>
             <label class="slider-line" id="rotation-control"><span>ROTATION</span><input id="rotation-slider" type="range" min="0" max="25" value="0" /><b id="rotation-value">0</b></label>
             <div class="rail-controls" id="rail-controls" hidden><label class="slider-line"><span>RAILS</span><input id="rail-slider" type="range" min="2" max="4" value="2" /><b id="rail-value">2</b></label><div class="rail-trace" id="rail-trace"></div></div>
-            <div class="layer-controls" id="layer-controls" hidden><label class="field-label" for="key-one">KEY A · VIGENÈRE</label><input class="cipher-input" id="key-one" maxlength="10" placeholder="ENTER KEY A" autocomplete="off" /><label class="slider-line"><span>KEY B · SHIFT</span><input id="layer-shift" type="range" min="0" max="25" value="0" /><b id="layer-shift-value">0</b></label></div>
+            <div class="layer-controls" id="layer-controls" hidden><label class="field-label" for="key-one">KEY A · PRELOADED</label><input class="cipher-input" id="key-one" maxlength="10" placeholder="AUTO-LOADED" autocomplete="off" readonly /><label class="slider-line"><span>KEY B · SHIFT</span><input id="layer-shift" type="range" min="0" max="25" value="0" /><b id="layer-shift-value">0</b></label></div>
           </div>
-          <label class="field-label" for="decode-answer">DECODED MESSAGE <span>SPACES OPTIONAL</span></label><input class="cipher-input answer-input" id="decode-answer" placeholder="TYPE THE RESTORED SIGNAL" autocomplete="off" />
-          <div class="puzzle-actions"><button class="action primary" id="submit-answer">VERIFY DECODE <span class="arrow">↗</span></button><span class="puzzle-reward">+<b id="tier-reward">50</b> XP</span></div><div class="cipher-result" id="cipher-result" aria-live="polite">Tune the key, then submit the decoded transmission.</div>
+          <label class="field-label" for="decode-answer">DECODED MESSAGE <span>AUTO-FILLS AT TARGET</span></label><input class="cipher-input answer-input" id="decode-answer" placeholder="Move the dial to reveal the message" autocomplete="off" readonly />
+          <div class="puzzle-actions"><button class="action primary" id="submit-answer">CHECK DIAL <span class="arrow">↗</span></button><span class="puzzle-reward">+<b id="tier-reward">50</b> XP</span></div><div class="cipher-result" id="cipher-result" aria-live="polite">Move the dial to its target. The message decodes automatically.</div>
           <div class="return-signal" id="return-signal" hidden><div class="return-heading"><div><div class="section-kicker">RETURN CHANNEL</div><h3>Encode a reply.</h3></div><span>KEYED</span></div><div class="return-row"><input class="cipher-input" id="return-message" maxlength="36" value="RETURN TO BASE" aria-label="Reply message" /><button class="action secondary" id="encode-reply">ENCODE</button></div><div class="reply-output" id="reply-output" hidden></div></div>
         </article>
         <aside class="cipher-side"><article class="cipher-card cipher-guide"><div class="card-kicker"><span>FIELD NOTES</span><span class="note-mark">✳</span></div><h3 id="mechanic-title">A letter can orbit.</h3><p id="mechanic-copy"></p><div class="micro-example" id="micro-example"></div><div class="tier-progress"><div><span>TRAINING CLEARANCE</span><b id="tier-progress-text">0 / 3</b></div><div class="progress-track"><i id="tier-progress-fill"></i></div></div></article>
@@ -274,9 +274,9 @@ cameraToggle.addEventListener('click', async () => {
       audio: false,
       video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
     });
-    cameraStream = stream;
     cameraFeed.srcObject = stream;
     await cameraFeed.play();
+    cameraStream = stream;
     scene.background = null;
     scene.fog = null;
     nebula.visible = false;
@@ -288,7 +288,16 @@ cameraToggle.addEventListener('click', async () => {
     toast('Live camera on. Satellite and space graphics are overlaid on your surroundings.');
   } catch (error) {
     console.warn('Live camera could not start:', error);
-    toast(error.name === 'NotAllowedError' ? 'Camera access was denied. Allow camera access in your browser to use the live background.' : 'Could not start the camera. Check browser permissions and try again.');
+    cameraFeed.pause();
+    cameraFeed.srcObject?.getTracks().forEach((track) => track.stop());
+    cameraFeed.srcObject = null;
+    toast(error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError'
+      ? 'Camera permission is off. Allow camera access for HISP-SED in Android Settings, then try again.'
+      : error.name === 'NotFoundError'
+        ? 'No camera was found on this device.'
+        : error.name === 'NotReadableError'
+          ? 'The camera is busy in another app. Close it and try again.'
+          : 'Could not start the camera. Check Android camera permission and try again.');
   } finally {
     cameraToggle.disabled = false;
   }
