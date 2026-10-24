@@ -1,0 +1,8 @@
+{
+  "appId": "com.hisp.sed",
+  "appName": "HISP-SED",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  }
+}

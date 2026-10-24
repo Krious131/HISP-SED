@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">HISP-SED</string>
+    <string name="title_activity_main">HISP-SED</string>
+    <string name="package_name">com.hisp.sed</string>
+    <string name="custom_url_scheme">com.hisp.sed</string>
+</resources>
