@@ -11,8 +11,8 @@ The app is branded **HISP-SED**. Its custom orbit-and-planet icon is in `assets/
 3. Run `npm run dev -- --host 0.0.0.0 --port 5173`.
 4. Open [http://localhost:5173/](http://localhost:5173/) in a modern browser.
 5. Drag to orbit around the spacecraft and scroll or pinch to zoom. Open **SPACECRAFT** to select AIM or either AcrimSAT model. On a phone, tap **MOTION**, then turn or tilt the phone; drag and pinch remain available.
-6. Select one of the orbiting satellites in the scene, or choose it from **SPACECRAFT → ORBITAL CONTACTS**. Inspect its simulated position, altitude, speed, vector path, and ping. Move the single antenna dial toward the displayed beacon target; it locks automatically when close.
-7. Open **CIPHER RANGE** for the guided substitution, transposition, and dual-key puzzles. Match the displayed dial setting and the decoded message appears automatically. The tutorial appears on first entry; cleared tiers unlock the next tier. The AES-256-GCM panel demonstrates packet sealing, decryption, and tamper rejection.
+6. Select each of the three orbital contacts from **SPACECRAFT → ORBITAL CONTACTS**. Move its single antenna dial toward the displayed beacon target; it locks automatically when close. The **CIPHER RANGE** button shows uplink progress and the app confirms each link.
+7. Lock all three satellites to unlock one cipher message. Open **CIPHER RANGE**, move the rotation dial, and watch the decoded preview update live. At the target setting, the message is confirmed automatically. The gate and **HOW TO PLAY** give the three steps: link the satellites, unlock the message, then turn the cipher dial to decode.
 8. Tap **CAMERA** to request the rear camera and show a live, translucent camera view behind the 3D scene. Tap it again to stop the camera. The camera stays off until requested.
 9. Tap **INTRO** to replay the launch sequence. On the first visit, **SKIP INTRO** dismisses it at any time.
 

@@ -3,9 +3,9 @@ import { openPacket, sealPacket, verifyTamperRejection } from './secure-packet.j
 
 const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 const lessons = [
-  { icon: '◎', title: 'Turn one dial.', copy: 'Each mission shows the target setting. Move the dial to it and the decoded message appears automatically.' },
-  { icon: '↻', title: 'Follow the target.', copy: 'The first two missions use one dial each. The last mission preloads its word key, so you only set the shift.' },
-  { icon: '⌑', title: 'Seal the real link.', copy: 'Training ciphers are deliberately simple. The AES-256-GCM panel uses authenticated encryption and detects tampering.' },
+  { icon: '◎', title: 'Uplink three satellites.', copy: 'In orbit, open SPACECRAFT and choose a satellite. Move its antenna dial toward the target; the link locks automatically when close.' },
+  { icon: '↻', title: 'Unlock one message.', copy: 'Once all three satellite links are locked, CIPHER RANGE opens one intercepted message. There are no extra tiers to clear.' },
+  { icon: '⌑', title: 'Turn and watch it decode.', copy: 'Move the cipher dial to see the decoded preview change live. At the target setting, the message is confirmed automatically.' },
 ];
 
 export function tutorialWasSeen() { return localStorage.getItem('space-cypher-tutorial-seen') === 'yes'; }
@@ -63,16 +63,10 @@ export function initCipherRange({ toast, addXP }) {
   }
 
   function renderTierTabs() {
-    document.querySelectorAll('.tier-tab').forEach((button) => {
-      const index = Number(button.dataset.tier);
-      button.classList.toggle('active', index === tier);
-      button.classList.toggle('cleared', cleared.has(index));
-      button.disabled = index > highestUnlocked;
-      button.querySelector('i').textContent = cleared.has(index) ? 'CLEARED' : index <= highestUnlocked ? 'READY' : 'LOCKED';
-    });
-    const count = cleared.size;
-    $('#tier-progress-text').textContent = `${count} / 3`;
-    $('#tier-progress-fill').style.width = `${(count / 3) * 100}%`;
+    const complete = cleared.has(1);
+    $('#tier-progress-text').textContent = complete ? '1 / 1' : '0 / 1';
+    $('#tier-progress-fill').style.width = complete ? '100%' : '0%';
+    $('#single-message-state').textContent = complete ? 'DECODED' : 'READY';
   }
 
   function loadTier(nextTier) {
@@ -127,6 +121,7 @@ export function initCipherRange({ toast, addXP }) {
     renderWheel();
     renderRailTrace();
     renderTierTabs();
+    updateKeyReadout();
   }
 
   function currentKeys() {
@@ -158,7 +153,21 @@ export function initCipherRange({ toast, addXP }) {
       $('#layer-shift-value').textContent = keyTwo;
       $('#key-value').textContent = keyOne ? `${keyOne.toUpperCase()} / +${keyTwo}` : '2 LAYERS';
     }
+    renderDecodedPreview();
     autoDecodeIfCorrect();
+  }
+
+  function renderDecodedPreview() {
+    const [keyOne, keyTwo] = currentKeys();
+    if (tier === 3 && !normalizeSignal(keyOne)) {
+      $('#decode-answer').value = '';
+      return;
+    }
+    const decoded = normalizeSignal(decodeChallenge(challenge, keyOne, keyTwo));
+    let index = 0;
+    $('#decode-answer').value = [...challenge.plaintext]
+      .map((character) => /[A-Z]/i.test(character) ? decoded[index++] || '·' : character)
+      .join('');
   }
 
   function submitAnswer() {
@@ -183,7 +192,7 @@ export function initCipherRange({ toast, addXP }) {
     $('#reply-output').hidden = true;
     $('#return-message').value = 'RETURN TO BASE';
     renderTierTabs();
-    toast(firstClear ? 'Signal decoded. Next cipher tier unlocked.' : 'Signal decoded.');
+    toast(firstClear ? 'Message decoded. Mission complete.' : 'Message decoded.');
   }
 
   function autoDecodeIfCorrect() {

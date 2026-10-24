@@ -31,7 +31,7 @@ document.querySelector('#app').innerHTML = `
       <div class="contact-selector"><div class="section-kicker">ORBITAL CONTACTS / 03</div><div id="contact-list" class="contact-list"></div></div>
       <div class="control-hint"><span class="mouse-glyph">↗</span><span><b>DRAG</b> orbit <i>·</i> <b>PINCH</b> zoom<br /><small>Tap a satellite to inspect its telemetry</small></span></div>
     </section>
-    <button class="cipher-launch" id="cipher-launch"><span>⌘</span><span><b>CIPHER RANGE</b><small>TRAINING OPS · 03 TIERS</small></span><i>↗</i></button>
+    <button class="cipher-launch" id="cipher-launch"><span>⌘</span><span><b>CIPHER RANGE</b><small id="cipher-launch-status">SATELLITE UPLINKS · 0/3</small></span><i>↗</i></button>
     <aside class="telemetry-card glass" id="telemetry-card" hidden aria-live="polite"></aside>
     <div class="scene-caption"><span class="caption-mark">◎</span><div><b id="ship-caption">AIM · SCIENCE ORBITER</b><small>SELECT AN ORBITAL CONTACT</small></div></div>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -42,9 +42,10 @@ document.querySelector('#app').innerHTML = `
 document.querySelector('#app').insertAdjacentHTML('beforeend', `
   <section class="cipher-view" id="cipher-view" aria-label="Cipher training range" hidden>
     <header class="cipher-topbar"><a class="brand" href="#home"><span class="brand-icon">SC</span><span>SPACE <b>CYPHER</b><small>TRAINING RANGE / 01</small></span></a><div class="cipher-top-actions"><span class="cipher-xp"><b id="cipher-xp">0</b> XP</span><button class="quiet-button" id="tutorial-open">HOW TO PLAY</button><button class="icon-button" id="cipher-close" aria-label="Return to orbit">×</button></div></header>
-    <div class="cipher-content">
-      <div class="cipher-intro"><div><div class="section-kicker">SIGNAL INTERCEPT / ENCRYPTION & DECRYPTION</div><h1>Break the <em>signal.</em></h1><p>Learn the keys, decode mission traffic, then seal a return packet. Each cleared tier adds a layer.</p></div><div class="training-badge"><span>TRAINING ONLY</span><small>CLASSICAL CIPHERS ARE NOT SECURE</small></div></div>
-      <nav class="tier-tabs" aria-label="Cipher difficulty"><button class="tier-tab active" data-tier="1"><span>01</span><b>ROTATION</b><small>SUBSTITUTION</small><i>READY</i></button><button class="tier-tab" data-tier="2"><span>02</span><b>RAIL FENCE</b><small>TRANSPOSITION</small><i>LOCKED</i></button><button class="tier-tab" data-tier="3"><span>03</span><b>DUAL KEY</b><small>LAYERED CIPHER</small><i>LOCKED</i></button></nav>
+    <div class="cipher-gate" id="cipher-gate" hidden><article class="cipher-gate-card"><div class="section-kicker">MISSION ACCESS / <span id="cipher-gate-count">0 OF 3</span> SATELLITE UPLINKS</div><h1>Unlock one <em>message.</em></h1><p>Connect all three satellites to open the cipher transmission.</p><ol><li><b>Choose a satellite</b><span>Open SPACECRAFT, then select one orbital contact.</span></li><li><b>Turn its antenna dial</b><span>Move the dial toward the displayed beacon target. It locks automatically when close.</span></li><li><b>Repeat for all three</b><span>When all three links are locked, CIPHER RANGE opens with one message to decode.</span></li></ol><div class="gate-progress"><i id="cipher-gate-progress"></i></div><button class="action primary" id="gate-return">RETURN TO ORBIT <span class="arrow">↗</span></button></article></div>
+    <div class="cipher-content" id="cipher-content" hidden>
+      <div class="cipher-intro"><div><div class="section-kicker">SIGNAL INTERCEPT / ONE MESSAGE</div><h1>Decode the <em>signal.</em></h1><p>Turn one dial, watch the live preview change, and reach the marked setting to decode the message.</p></div><div class="training-badge"><span>TRAINING ONLY</span><small>CLASSICAL CIPHERS ARE NOT SECURE</small></div></div>
+      <div class="tier-tabs single-message-tab"><span>UNLOCKED TRANSMISSION</span><b>ONE MESSAGE · ROTATION DIAL</b><i id="single-message-state">READY</i></div>
       <div class="cipher-grid">
         <article class="cipher-card cipher-puzzle-card"><div class="card-kicker"><span id="puzzle-tier-label">TIER 01 / ROTATION WHEEL</span><span class="signal-state"><i></i> INTERCEPTED</span></div><div class="puzzle-meta"><div><div class="section-kicker">INCOMING TRANSMISSION</div><h2 id="puzzle-title">Restore the signal.</h2></div><span class="cipher-difficulty" id="cipher-difficulty">ENTRY</span></div><p class="puzzle-description" id="puzzle-description"></p>
           <div class="ciphertext-box"><div><span>ENCRYPTED PAYLOAD</span><b id="ciphertext-label">—</b></div><div class="cipher-tools"><button id="hint-button" class="text-button">NEED A CLUE?</button><button id="new-challenge" class="text-button" title="Restart this puzzle">↻ RESET</button></div></div>
@@ -114,6 +115,7 @@ const sensorBaseline = new THREE.Quaternion();
 const sensorRelative = new THREE.Quaternion();
 const sensorAngles = new THREE.Euler(0, 0, 0, 'YXZ');
 const sensorOffset = { yaw: 0, pitch: 0 };
+const sensorTarget = { yaw: 0, pitch: 0 };
 let motionEnabled = false;
 let sensorReady = false;
 let sensorEvents = 0;
@@ -133,9 +135,11 @@ const orientationHandler = (event) => {
   }
   sensorRelative.copy(sensorBaseline).invert().multiply(deviceQuaternion).normalize();
   sensorAngles.setFromQuaternion(sensorRelative, 'YXZ');
-  // Keep the motion mapping intuitive and comfortably limited for small hand movements.
-  sensorOffset.yaw = THREE.MathUtils.clamp(sensorAngles.y, -Math.PI * 0.47, Math.PI * 0.47);
-  sensorOffset.pitch = THREE.MathUtils.clamp(sensorAngles.x, -Math.PI * 0.32, Math.PI * 0.32);
+  // Reduce the raw device range, ignore tiny sensor noise, and let the render loop smooth it.
+  const yaw = Math.abs(sensorAngles.y) < 0.015 ? 0 : sensorAngles.y * 0.52;
+  const pitch = Math.abs(sensorAngles.x) < 0.015 ? 0 : sensorAngles.x * 0.52;
+  sensorTarget.yaw = THREE.MathUtils.clamp(yaw, -Math.PI * 0.28, Math.PI * 0.28);
+  sensorTarget.pitch = THREE.MathUtils.clamp(pitch, -Math.PI * 0.2, Math.PI * 0.2);
 };
 const updateScreenAngle = () => {
   screenAngle = Number(window.screen?.orientation?.angle ?? window.orientation ?? 0);
@@ -143,6 +147,8 @@ const updateScreenAngle = () => {
     sensorReady = false;
     sensorOffset.yaw = 0;
     sensorOffset.pitch = 0;
+    sensorTarget.yaw = 0;
+    sensorTarget.pitch = 0;
   }
 };
 updateScreenAngle();
@@ -154,6 +160,8 @@ function stopPhoneMotion() {
   sensorEvents = 0;
   sensorOffset.yaw = 0;
   sensorOffset.pitch = 0;
+  sensorTarget.yaw = 0;
+  sensorTarget.pitch = 0;
   controls.autoRotate = true;
   motionButton.classList.remove('enabled');
   motionButton.setAttribute('aria-pressed', 'false');
@@ -185,6 +193,8 @@ motionButton.addEventListener('click', async () => {
     sensorEvents = 0;
     sensorOffset.yaw = 0;
     sensorOffset.pitch = 0;
+    sensorTarget.yaw = 0;
+    sensorTarget.pitch = 0;
     window.addEventListener('deviceorientation', orientationHandler, true);
     motionEnabled = true;
     controls.autoRotate = false;
@@ -198,7 +208,7 @@ motionButton.addEventListener('click', async () => {
         stopPhoneMotion();
         toast('No phone motion readings received. Open this on a motion-enabled phone over HTTPS or localhost.');
       } else if (motionEnabled) {
-        toast('Phone motion on. Turn your phone to look around; drag and pinch still work.');
+      toast('Phone motion on. Turn slowly to look around; the view is smoothed. Drag and pinch still work.');
       }
     }, 1400);
   } catch (error) {
@@ -346,6 +356,17 @@ const orbitalContacts = [
 ];
 const lockedContacts = new Set(JSON.parse(localStorage.getItem('space-cypher-locked-contacts') || '[]'));
 orbitalContacts.forEach((contact) => { contact.locked = lockedContacts.has(contact.id); contact.xpClaimed = contact.locked; });
+function updateCipherGate() {
+  const count = Math.min(3, lockedContacts.size);
+  const unlocked = count >= 3;
+  document.querySelector('#cipher-launch-status').textContent = unlocked ? 'ONE MESSAGE UNLOCKED' : `SATELLITE UPLINKS · ${count}/3`;
+  document.querySelector('#cipher-gate-count').textContent = `${count} OF 3`;
+  document.querySelector('#cipher-gate-progress').style.width = `${(count / 3) * 100}%`;
+  document.querySelector('#cipher-gate').hidden = unlocked;
+  document.querySelector('#cipher-content').hidden = !unlocked;
+  return unlocked;
+}
+updateCipherGate();
 const contactLayer = new THREE.Group();
 scene.add(contactLayer);
 function createContactModel(contact) {
@@ -465,7 +486,8 @@ document.querySelector('#level').textContent = String(Math.floor(xp / 250) + 1).
 function openCipher() {
   cipherView.hidden = false;
   document.querySelector('#cipher-launch').classList.add('active');
-  if (!tutorialWasSeen()) document.querySelector('#tutorial-scrim').hidden = false;
+  updateCipherGate();
+  if (lockedContacts.size >= 3 && !tutorialWasSeen()) document.querySelector('#tutorial-scrim').hidden = false;
   if (location.hash !== '#cipher') history.pushState({ view: 'cipher' }, '', '#cipher');
 }
 function closeCipher() {
@@ -477,18 +499,21 @@ initCipherRange({ toast, addXP: updateXP });
 document.querySelector('#cipher-launch').addEventListener('click', openCipher);
 document.querySelector('#cipher-close').addEventListener('click', closeCipher);
 window.addEventListener('hashchange', () => {
-  if (location.hash === '#cipher') { cipherView.hidden = false; if (!tutorialWasSeen()) document.querySelector('#tutorial-scrim').hidden = false; }
+  if (location.hash === '#cipher') { cipherView.hidden = false; updateCipherGate(); if (lockedContacts.size >= 3 && !tutorialWasSeen()) document.querySelector('#tutorial-scrim').hidden = false; }
   else cipherView.hidden = true;
   document.querySelector('#cipher-launch').classList.toggle('active', location.hash === '#cipher');
 });
-if (location.hash === '#cipher') { cipherView.hidden = false; if (!tutorialWasSeen()) document.querySelector('#tutorial-scrim').hidden = false; }
+document.querySelector('#gate-return').addEventListener('click', closeCipher);
+if (location.hash === '#cipher') { cipherView.hidden = false; updateCipherGate(); if (lockedContacts.size >= 3 && !tutorialWasSeen()) document.querySelector('#tutorial-scrim').hidden = false; }
 
 const satelliteInterface = createSatelliteInterface({
   host: telemetryCard,
   onLock: (contact) => {
     lockedContacts.add(contact.id);
     localStorage.setItem('space-cypher-locked-contacts', JSON.stringify([...lockedContacts]));
-    if (!contact.xpClaimed) { contact.xpClaimed = true; updateXP(75); toast(`${contact.name} aligned. +75 XP`); }
+    updateCipherGate();
+    if (!contact.xpClaimed) { contact.xpClaimed = true; updateXP(75); }
+    toast(lockedContacts.size >= 3 ? 'All 3 satellite links locked. One cipher message unlocked.' : `${contact.name} linked · ${lockedContacts.size}/3 satellites uplinked.`);
   },
 });
 const openTelemetry = (contact) => satelliteInterface.show(contact, clock.getElapsedTime());
@@ -589,7 +614,8 @@ const motionSpherical = new THREE.Spherical();
 const motionOrbitOffset = new THREE.Vector3();
 function animate() {
   requestAnimationFrame(animate);
-  const elapsed = clock.getElapsedTime();
+  const frameDelta = clock.getDelta();
+  const elapsed = clock.elapsedTime;
   earth.rotation.y += 0.00018;
   stationBeacon.scale.setScalar(1 + Math.sin(elapsed * 3) * 0.09);
   if (loadedShip) loadedShip.rotation.y += 0.0011;
@@ -606,6 +632,9 @@ function animate() {
   controls.update();
   let restoreOrbitPose = false;
   if (motionEnabled && sensorReady) {
+    const smoothing = 1 - Math.exp(-6 * Math.min(frameDelta, 0.05));
+    sensorOffset.yaw += (sensorTarget.yaw - sensorOffset.yaw) * smoothing;
+    sensorOffset.pitch += (sensorTarget.pitch - sensorOffset.pitch) * smoothing;
     orbitBasePosition.copy(camera.position);
     orbitBaseQuaternion.copy(camera.quaternion);
     motionOrbitOffset.copy(camera.position).sub(controls.target);
